@@ -3,7 +3,6 @@
 #include <limits>
 #include <string>
 #include <sstream>
-#include <cctype>
 #undef max
 using namespace std;
 
@@ -16,10 +15,10 @@ void clearStream() {
 
 
 struct Node {
-    size_t data;
+    string data;
     int prior;
     Node* next;
-    Node(size_t inputData, int inputPrior) {
+    Node(string inputData, int inputPrior) {
         data = inputData;
         prior = inputPrior;
         next = nullptr;
@@ -48,7 +47,7 @@ struct Stack {
         head = node->next;
         delete node;
     }
-    void pushFront(size_t data, int prior){
+    void pushFront(string data, int prior){
         Node* node = new Node(data, prior);
         node->next = head;
         head = node;
@@ -57,6 +56,14 @@ struct Stack {
 
     Node* getHead(){
         return head;
+    }
+
+    void printOutput(){
+        string str;
+        for (Node *ptr = head; ptr != nullptr; ptr = ptr->next) {
+            str = ptr->data + " " + str;
+        }
+        cout << "\nВыходная строка: " << str << "\n";
     }
 
 };
@@ -78,34 +85,84 @@ int Prior(char c){
     }
 }
 
-void getStr(string &input, Stack &output, Stack &symbols){
-    clearStream();
-    getline(cin, input);
-    string currentNumber = "";
-    for (char c : input) {
-        if (isdigit(c)) {
-            currentNumber += c;
-        }
-        else if (currentNumber != "") {
-            output.pushFront(stoi(currentNumber), -1);
-            currentNumber = "";
-        }
 
-        if (!isdigit(c)) {
-            symbols.pushFront(static_cast<char>(c), Prior(c));
+void checkSymbol(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr){
+    if(ptr == nullptr || ptr->prior < Prior(c)){
+        if (!curr.empty()){
+            output.pushFront(curr, -1);
+            curr = "";
         }
-    }
-
-    if (currentNumber != "") {
-        output.pushFront(stoi(currentNumber), -1);
-    }
-
-    for(Node* ptr = symbols.head; ptr != nullptr; ptr = ptr->next){
-        
+        curr.push_back(c);
+        symbols.pushFront(curr, Prior(c));
+        curr = "";
+    } else {
+        while (ptr != nullptr && ptr->prior >= Prior(c)){
+            output.pushFront(ptr->data, Prior(ptr->data[0]));
+            symbols.popFront();
+            ptr = symbols.head;
+        }
+        checkSymbol(ptr, c, output, symbols, curr);
     }
 }
 
 
+void brackets(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr){
+    if (c == '('){
+        //output.pushFront(curr, -1);
+        curr = "";
+        curr = '(';
+        //curr.push_back(c);
+        symbols.pushFront(curr, 0);
+        curr = "";
+    } else {
+        output.pushFront(curr, -1);
+        curr = "";
+        while (ptr != nullptr && ptr->data[0] != '('){
+            output.pushFront(ptr->data, Prior(ptr->data[0]));
+            symbols.popFront();
+            ptr = symbols.head;
+        }
+        symbols.popFront();
+    }
+}
+
+
+void getStr(string &input, Stack &output, Stack &symbols) {
+    clearStream();
+    getline(cin, input);
+    string curr = "";
+    Node *ptr = nullptr;
+    for (int i = 0; i < input.length(); i++) {
+        switch (Prior(input[i])) {
+            case -1:
+                curr.push_back(input[i]);
+                break;
+            case 1:
+            case 2:
+                ptr = symbols.getHead();
+                checkSymbol(ptr, input[i], output, symbols, curr);
+                break;
+            case 0:
+                ptr = symbols.getHead();
+                brackets(ptr, input[i], output, symbols, curr);
+                break;
+        }
+    }
+    if(!curr.empty()){
+        output.pushFront(curr, -1);
+    }
+    if (symbols.getHead() != nullptr){
+        for (Node* p = symbols.head; p != nullptr; p = p->next){
+            output.pushFront(p->data, -1);
+        }
+    }
+}
+
+
+void clearAll(Stack &symbols, Stack &output){
+    output.clearStack();
+    symbols.clearStack();
+}
 
 //.....................................................................
 int main() {
@@ -117,16 +174,19 @@ int main() {
     symbols.createStack();
     output.createStack();
     while (true){
+        cout << "Введите номер: ";
         cin >> choise;
         switch (choise){
             case 1:
+                clearAll(symbols, output);
                 getStr(input, output, symbols);
-
+                output.printOutput();
                 break;
             case 2:
                 output.clearStack();
                 symbols.clearStack();
                 exit(0);
         }
+        cout << "\n";
     }
 }
