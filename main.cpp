@@ -1,6 +1,9 @@
 #include <iostream>
 #include <Windows.h>
 #include <limits>
+#include <string>
+#include <sstream>
+#include <cctype>
 #undef max
 using namespace std;
 
@@ -13,10 +16,12 @@ void clearStream() {
 
 
 struct Node {
-    int data;
+    size_t data;
+    int prior;
     Node* next;
-    Node(int inputData) {
+    Node(size_t inputData, int inputPrior) {
         data = inputData;
+        prior = inputPrior;
         next = nullptr;
     }
 };
@@ -24,7 +29,6 @@ struct Node {
 
 struct Stack {
     Node* head, * tail;
-
     void createStack(){
         head = tail = nullptr;
     }
@@ -44,9 +48,8 @@ struct Stack {
         head = node->next;
         delete node;
     }
-
-    void pushFront(int data){
-        Node* node = new Node(data);
+    void pushFront(size_t data, int prior){
+        Node* node = new Node(data, prior);
         node->next = head;
         head = node;
         if (tail == nullptr) tail = node;
@@ -56,30 +59,74 @@ struct Stack {
         return head;
     }
 
-    void printStack(){
-        for (Node *ptr = head; ptr != nullptr; ptr = ptr->next)
-            cout << ptr->data << " ";
-        cout << "\n";
-    }
-
-    void fillStack(){
-        int number;
-        while (cin >> number) {
-            pushFront(number);
-            if (cin.peek() == '\n') {
-                break;
-            }
-        }
-        clearStream();
-    }
 };
 
+//функции для нотации
+int Prior(char c){
+    switch (c){
+        case '+':
+        case '-':
+            return 1;
+        case '*':
+        case '/':
+            return 2;
+        case '(':
+        case ')':
+            return 0;
+        default:
+            return -1;
+    }
+}
 
+void getStr(string &input, Stack &output, Stack &symbols){
+    clearStream();
+    getline(cin, input);
+    string currentNumber = "";
+    for (char c : input) {
+        if (isdigit(c)) {
+            currentNumber += c;
+        }
+        else if (currentNumber != "") {
+            output.pushFront(stoi(currentNumber), -1);
+            currentNumber = "";
+        }
+
+        if (!isdigit(c)) {
+            symbols.pushFront(static_cast<char>(c), Prior(c));
+        }
+    }
+
+    if (currentNumber != "") {
+        output.pushFront(stoi(currentNumber), -1);
+    }
+
+    for(Node* ptr = symbols.head; ptr != nullptr; ptr = ptr->next){
+        
+    }
+}
+
+
+
+//.....................................................................
 int main() {
     SetConsoleOutputCP(CP_UTF8);
-    Stack stack;
-    stack.createStack();
-    stack.fillStack();
-    stack.printStack();
-    return 0;
+    Stack symbols;
+    Stack output;
+    string input;
+    int choise;
+    symbols.createStack();
+    output.createStack();
+    while (true){
+        cin >> choise;
+        switch (choise){
+            case 1:
+                getStr(input, output, symbols);
+
+                break;
+            case 2:
+                output.clearStack();
+                symbols.clearStack();
+                exit(0);
+        }
+    }
 }
