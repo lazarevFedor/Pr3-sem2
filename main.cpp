@@ -96,6 +96,10 @@ void checkSymbol(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr
         symbols.pushFront(curr, Prior(c));
         curr = "";
     } else {
+        if (!curr.empty()){
+            output.pushFront(curr, -1);
+            curr = "";
+        }
         while (ptr != nullptr && ptr->prior >= Prior(c)){
             output.pushFront(ptr->data, Prior(ptr->data[0]));
             symbols.popFront();
