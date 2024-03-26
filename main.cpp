@@ -169,6 +169,58 @@ void clearAll(Stack &symbols, Stack &output){
 }
 
 //.....................................................................
+
+
+int operation(int a, int b, char c){
+    switch (c){
+        case '+':
+            return a + b;
+        case '-':
+            return a - b;
+        case '*':
+            return a * b;
+        case '/':
+            return a / b;
+        default:
+            cout << "\nНеправильный ввод строки!\n";
+    }
+}
+
+int resultPN(string &input, Stack &output){
+    clearStream();
+    input = "";
+    Node *ptr = nullptr;
+    string curr = "";
+    getline(cin, input);
+    int result;
+    for (int i = 0; i< input.length(); i++){
+        if (input[i] != ' '){
+            switch(Prior(input[i])){
+                case -1:
+                    curr.push_back(input[i]);
+                    break;
+                case 1:
+                case 2:
+                    result = stoi(output.getHead()->data);
+                    output.popFront();
+                    result = operation(stoi(output.getHead()->data), result, input[i]);
+                    output.popFront();
+                    curr = to_string(result);
+                    output.pushFront(curr, -1);
+                    curr = "";
+                    break;
+            }
+        } else{
+            if (!curr.empty()){
+                output.pushFront(curr, -1);
+                curr = "";
+            }
+        }
+    }
+    return result;
+}
+
+//.....................................................................
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     Stack symbols;
@@ -187,8 +239,11 @@ int main() {
                 output.printOutput();
                 break;
             case 2:
-                output.clearStack();
-                symbols.clearStack();
+                clearAll(symbols, output);
+                cout << "\n" << resultPN(input, output) << "\n";
+                break;
+            case 3:
+                clearAll(symbols, output);
                 exit(0);
         }
         cout << "\n";
