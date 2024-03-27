@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <limits>
 #include <string>
-#include <sstream>
 #undef max
 using namespace std;
 
@@ -11,6 +10,28 @@ void clearStream() {
     cin.clear();
     cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     cin.sync();
+}
+
+
+void fillString(string &input){
+    clearStream();
+    getline(cin, input);
+}
+
+
+void mainMenu(){
+    cout << "1) Преобразовать выражение\n" <<
+    "2) Проверить корректность выражения\n" <<
+    "3) Вычислить выражение\n" <<
+    "4) Очистить консоль\n" <<
+    "5) Выход\n-->> ";
+}
+
+
+void recordingMenu(){
+    cout << "1) Обратная польская запись\n" <<
+    "2) Польская запись\n" <<
+    "3) Простая запись\n-->> ";
 }
 
 
@@ -61,6 +82,10 @@ struct Stack {
     void printOutput(){
         string str;
         for (Node *ptr = head; ptr != nullptr; ptr = ptr->next) {
+            if(ptr->data == "("){
+                cout << "\nОшибка ввода строки! Отсутстует закрывающая скобка.\n";
+                return;
+            }
             str = ptr->data + " " + str;
         }
         cout << "\nВыходная строка: " << str << "\n";
@@ -81,7 +106,10 @@ int Prior(char c){
         case ')':
             return 0;
         default:
-            return -1;
+            if (isdigit(c)) return -1;
+            else if (c >= 'A' && c <= 'Z') return -1;
+            else if (c >= 'a' && c <= 'z') return -1;
+            else return 404;
     }
 }
 
@@ -110,12 +138,10 @@ void checkSymbol(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr
 }
 
 
-void brackets(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr){
+bool brackets(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr){
     if (c == '('){
-        //output.pushFront(curr, -1);
-        curr = "";
+        //curr = "";
         curr = '(';
-        //curr.push_back(c);
         symbols.pushFront(curr, 0);
         curr = "";
     } else {
@@ -125,15 +151,20 @@ void brackets(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr){
             output.pushFront(ptr->data, Prior(ptr->data[0]));
             symbols.popFront();
             ptr = symbols.head;
+            if (ptr == nullptr){
+                cout << "\nОшибка ввода строки! Открывающая скобка не найдена.\n";
+                return false;
+            }
         }
         symbols.popFront();
     }
 }
 
 
-void getStr(string &input, Stack &output, Stack &symbols) {
-    clearStream();
-    getline(cin, input);
+bool convertToRPN(string &input, Stack &output, Stack &symbols) {
+    //clearStream();
+    //getline(cin, input);
+    fillString(input);
     string curr = "";
     Node *ptr = nullptr;
     for (int i = 0; i < input.length(); i++) {
@@ -148,8 +179,8 @@ void getStr(string &input, Stack &output, Stack &symbols) {
                 break;
             case 0:
                 ptr = symbols.getHead();
-                brackets(ptr, input[i], output, symbols, curr);
-                break;
+                if (brackets(ptr, input[i], output, symbols, curr)) break;
+                return false;
         }
     }
     if(!curr.empty()){
@@ -160,10 +191,11 @@ void getStr(string &input, Stack &output, Stack &symbols) {
             output.pushFront(p->data, -1);
         }
     }
+    return true;
 }
 
 
-void clearAll(Stack &symbols, Stack &output){
+void clearStacks(Stack &symbols, Stack &output){
     output.clearStack();
     symbols.clearStack();
 }
@@ -182,18 +214,16 @@ int operation(int a, int b, char c){
         case '/':
             return a / b;
         default:
-            cout << "\nНеправильный ввод строки!\n";
+            cout << "\nОшибка ввода строки!\n";
     }
 }
 
-int resultPN(string &input, Stack &output){
-    clearStream();
+bool resultRPN(string &input, Stack &output){
     input = "";
-    Node *ptr = nullptr;
     string curr = "";
-    getline(cin, input);
+    fillString(input);
     int result;
-    for (int i = 0; i< input.length(); i++){
+    for (int i = 0; i < input.length(); i++){
         if (input[i] != ' '){
             switch(Prior(input[i])){
                 case -1:
@@ -201,6 +231,10 @@ int resultPN(string &input, Stack &output){
                     break;
                 case 1:
                 case 2:
+                    if (output.head == output.tail){
+                        cout << "\nОшибка ввода строки! Недостаточно операндов.\n";
+                        return false;
+                    }
                     result = stoi(output.getHead()->data);
                     output.popFront();
                     result = operation(stoi(output.getHead()->data), result, input[i]);
@@ -209,6 +243,9 @@ int resultPN(string &input, Stack &output){
                     output.pushFront(curr, -1);
                     curr = "";
                     break;
+                case 404:
+                    cout << "\nОшибка ввода строки! Неправильно введен символ.\n";
+                    return false;
             }
         } else{
             if (!curr.empty()){
@@ -217,34 +254,96 @@ int resultPN(string &input, Stack &output){
             }
         }
     }
-    return result;
+    if (output.getHead() != output.tail){
+        cout << "\nОшибка ввода! Недостаточно операций.\n";
+        return false;
+    }
+    return true;
 }
 
 //.....................................................................
 int main() {
     SetConsoleOutputCP(CP_UTF8);
-    Stack symbols;
-    Stack output;
+
+    Stack symbols, output;
     string input;
-    int choise;
+    short int choise;
     symbols.createStack();
     output.createStack();
+
     while (true){
-        cout << "Введите номер: ";
+        mainMenu();
         cin >> choise;
         switch (choise){
             case 1:
-                clearAll(symbols, output);
-                getStr(input, output, symbols);
-                output.printOutput();
+                clearStacks(symbols, output);
+                recordingMenu();
+                cin >> choise;
+                if (choise == 1){
+                    if (convertToRPN(input, output, symbols)) output.printOutput();
+                }
+                else if (choise == 2){
+                    //convertToPN
+                }
+                else cout << "Неправильно введён номер!\n";
                 break;
             case 2:
-                clearAll(symbols, output);
-                cout << "\n" << resultPN(input, output) << "\n";
+                clearStacks(symbols, output);
+                recordingMenu();
+                cin >> choise;
+                if (choise == 1){
+                    fillString(input);
+                    if (resultRPN(input, output)){
+                        cout << "\nВыражение корректно.\n";
+                    }
+                    else cout << "\nВыражение не корректно.\n";
+                }
+                else if (choise == 2){
+                    fillString(input);
+                    //resultPN
+                }
+                else if (choise == 3){
+                    fillString(input);
+                    convertToRPN(input, output, symbols);
+                    clearStacks(symbols, output);
+                    if (resultRPN(input, output)){
+                        cout << "\nВыражение корректно.\n";
+                    }
+                    else cout << "\nВыражение не корректно.\n";
+                }
+                else cout << "Неправильно введён номер!\n";
                 break;
             case 3:
-                clearAll(symbols, output);
+                clearStacks(symbols, output);
+                recordingMenu();
+                cin >> choise;
+                if (choise == 1){
+                    if (resultRPN(input, output)){
+                        cout << "\nРезультат вычислений: " << output.head->data;
+                    }
+                }
+                else if (choise == 2){
+                    //resultPN
+                }
+                else if (choise == 3){
+                    fillString(input);
+                    clearStacks(symbols, output);
+                    convertToRPN(input, output, symbols);
+                    clearStacks(symbols, output);
+                    if (resultRPN(input, output)){
+                        cout << "\nРезультат вычислений: " << output.head->data;
+                    }
+                }
+                else cout << "Неправильно введён номер!\n";
+                break;
+            case 4:
+                system("cls");
+                break;
+            case 5:
+                clearStacks(symbols, output);
                 exit(0);
+            default:
+                cout << "Неправильно введён номер!\n";
         }
         cout << "\n";
     }
