@@ -14,6 +14,7 @@ void clearStream() {
 
 
 void fillString(string &input){
+    cout << "\nВведите строку: ";
     clearStream();
     getline(cin, input);
 }
@@ -140,7 +141,6 @@ void checkSymbol(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr
 
 bool brackets(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr){
     if (c == '('){
-        //curr = "";
         curr = '(';
         symbols.pushFront(curr, 0);
         curr = "";
@@ -162,12 +162,42 @@ bool brackets(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr){
 
 
 bool convertToRPN(string &input, Stack &output, Stack &symbols) {
-    //clearStream();
-    //getline(cin, input);
     fillString(input);
     string curr = "";
     Node *ptr = nullptr;
     for (int i = 0; i < input.length(); i++) {
+        switch (Prior(input[i])) {
+            case -1:
+                curr.push_back(input[i]);
+                break;
+            case 1:
+            case 2:
+                ptr = symbols.getHead();
+                checkSymbol(ptr, input[i], output, symbols, curr);
+                break;
+            case 0:
+                ptr = symbols.getHead();
+                if (brackets(ptr, input[i], output, symbols, curr)) break;
+                return false;
+        }
+    }
+    if(!curr.empty()){
+        output.pushFront(curr, -1);
+    }
+    if (symbols.getHead() != nullptr){
+        for (Node* p = symbols.head; p != nullptr; p = p->next){
+            output.pushFront(p->data, -1);
+        }
+    }
+    return true;
+}
+
+
+bool convertToPN(string &input, Stack &output, Stack &symbols){
+    fillString(input);
+    string curr = "";
+    Node *ptr = nullptr;
+    for (int i = input.length()-1; i >= 0; i--) {
         switch (Prior(input[i])) {
             case -1:
                 curr.push_back(input[i]);
@@ -283,7 +313,7 @@ int main() {
                     if (convertToRPN(input, output, symbols)) output.printOutput();
                 }
                 else if (choise == 2){
-                    //convertToPN
+                    if(convertToPN(input, output, symbols)) output.printOutput();
                 }
                 else cout << "Неправильно введён номер!\n";
                 break;
