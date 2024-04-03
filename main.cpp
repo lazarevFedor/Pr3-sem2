@@ -102,19 +102,23 @@ void checkSymbol(Node* &ptr, char c, Stack &output, Stack &symbols, string &curr
     if(ptr == nullptr || ptr->prior < Prior(c)){
         if (!curr.empty()){
             if (PN) reverse(curr.begin(), curr.end());
+            cout << "\tОперанд был полностью считан. Помещаем его в строку.";
             output.pushFront(curr, -1);
             curr = "";
         }
         curr.push_back(c);
+        cout << "\tПриоритет операции выше или стек пуст. Помещаем операцию в стек.";
         symbols.pushFront(curr, Prior(c));
         curr = "";
     } else {
         if (!curr.empty()){
             if (PN) reverse(curr.begin(), curr.end());
+            cout << "\tОперанд был полностью считан. Помещаем его в строку.";
             output.pushFront(curr, -1);
             curr = "";
         }
         while (ptr != nullptr && ptr->prior >= Prior(c)){
+            cout << "\tПриоритет операции ниже. Достаем операции из стека.";
             output.pushFront(ptr->data, Prior(ptr->data[0]));
             symbols.popFront();
             ptr = symbols.head;
@@ -157,22 +161,27 @@ bool convertToRPN(string &inputString, Stack &output, Stack &symbols) {
     string curr = "";
     Node *ptr = nullptr;
     for (int i = 0; i < inputString.length(); i++) {
+        cout << "\nСчитали символ: " << inputString[i];
         switch (Prior(inputString[i])) {
             case -1:
+                cout << "\tЭто число или переменная. Помещаем в промежуточную строку.";
                 curr.push_back(inputString[i]);
                 break;
             case 1:
             case 2:
+                cout << "\tЭто операция.";
                 ptr = symbols.head;
                 checkSymbol(ptr, inputString[i], output, symbols, curr, false);
                 break;
             case 0:
                 ptr = symbols.head;
                 if (inputString[i] == '('){
+                    cout << "\tЭто открывающая скобка. Помещаем её в стек.";
                     curr = '(';
                     symbols.pushFront(curr, 0);
                     curr = "";
                 } else {
+                    cout << "\tЭто закрывающая скобка. Переносим промежуточную строку, а затем операции в выходную строку.";
                     output.pushFront(curr, -1);
                     curr = "";
                     while (ptr != nullptr && ptr->data[0] != '('){
@@ -193,13 +202,16 @@ bool convertToRPN(string &inputString, Stack &output, Stack &symbols) {
         }
     }
     if(!curr.empty()){
+        cout << "\nПереносим оставшиеся операнды в строку.";
         output.pushFront(curr, -1);
     }
     if (symbols.head != nullptr){
+        cout << "\nПереносим оставшиеся операции в строку.";
         for (Node* p = symbols.head; p != nullptr; p = p->next){
             output.pushFront(p->data, -1);
         }
     }
+    cout << "\nСтек и строка пустые. Все символы считаны.";
     if (!printOutputRPN(output, inputString)) return false;
     return true;
 }
@@ -209,22 +221,27 @@ bool convertToPN(string &inputString, Stack &output, Stack &symbols){
     string curr = "";
     Node *ptr = nullptr;
     for (int i = inputString.length()-1; i >= 0; i--) {
+        cout << "\nСчитали символ: " << inputString[i];
         switch (Prior(inputString[i])) {
             case -1:
+                cout << "\tЭто число или переменная. Помещаем в промежуточную строку.";
                 curr.push_back(inputString[i]);
                 break;
             case 1:
             case 2:
+                cout << "\tЭто операция.";
                 ptr = symbols.head;
                 checkSymbol(ptr, inputString[i], output, symbols, curr, 1);
                 break;
             case 0:
                 ptr = symbols.head;
                 if (inputString[i] == ')'){
+                    cout << "\tЭто закрывающая скобка. Помещаем её в стек.";
                     curr = ')';
                     symbols.pushFront(curr, 0);
                     curr = "";
                 } else {
+                    cout << "\tЭто открывающая скобка. Переносим промежуточную строку, а затем операции в выходную строку.";
                     reverse(curr.begin(), curr.end());
                     output.pushFront(curr, -1);
                     curr = "";
@@ -246,14 +263,17 @@ bool convertToPN(string &inputString, Stack &output, Stack &symbols){
         }
     }
     if(!curr.empty()){
+        cout << "\nПереносим оставшиеся операнды в строку.";
         reverse(curr.begin(), curr.end());
         output.pushFront(curr, -1);
     }
     if (symbols.head != nullptr){
+        cout << "\nПереносим оставшиеся операции в строку.";
         for (Node* p = symbols.head; p != nullptr; p = p->next){
             output.pushFront(p->data, -1);
         }
     }
+    cout << "\nСтек и строка пустые. Все символы считаны.";
     if (!printOutputPN(output)) return false;
     return true;
 }
@@ -285,14 +305,18 @@ bool resultRPN(string &inputString, Stack &output){
     int variable;
     for (int i = 0; i < inputString.length(); i++){
         if (inputString[i] != ' '){
+            cout << "\nСчитали символ: " << inputString[i];
             switch(Prior(inputString[i])){
                 case -1:
                     if (!isdigit(inputString[i])){
-                        cout << "\nИнициализируйте переменную - " << inputString[i] << " == ";
+                        cout << "\tЭто переменная. Инициализируйте её: " << inputString[i] << " ==";
                         cin >> variable;
                         curr += to_string(variable);
                     }
-                    else curr.push_back(inputString[i]);
+                    else{
+                        cout << "\tЭто цифра. Переносим в промежуточную строку.";
+                        curr.push_back(inputString[i]);
+                    }
                     break;
                 case 1:
                 case 2:
@@ -300,15 +324,18 @@ bool resultRPN(string &inputString, Stack &output){
                         cout << "\nОшибка ввода строки! Недостаточно операндов.\n";
                         return false;
                     }
+                    cout << "\tЭто оператор. Достаем операнд из стека: " << output.head->data;
                     result = stof(output.head->data);
                     output.popFront();
                     if (inputString[i] == '/' && result == 0){
                         cout << "\nДеление на ноль невозможно!\n";
                         return false;
                     }
+                    cout << " Достаем операнд из стека: " << output.head->data;
                     result = operation(stof(output.head->data), result, inputString[i]);
                     output.popFront();
                     curr = to_string(result);
+                    cout << "\tРезультат: " << curr << " Помещаем его в стек.";
                     output.pushFront(curr, -1);
                     curr = "";
                     break;
@@ -318,6 +345,7 @@ bool resultRPN(string &inputString, Stack &output){
             }
         } else{
             if (!curr.empty()){
+                cout << "\tПереносим операнд в стек.";
                 output.pushFront(curr, -1);
                 curr = "";
             }
@@ -337,14 +365,18 @@ bool resultPN(string &inputString, Stack &output) {
     int variable;
     for (int i = inputString.length() - 1; i >= 0; i--) {
         if (inputString[i] != ' ') {
+            cout << "\nСчитали символ: " << inputString[i];
             switch (Prior(inputString[i])) {
                 case -1:
                     if (!isdigit(inputString[i])){
-                        cout << "\nИнициализируйте переменную - " << inputString[i] << " == ";
+                        cout << "\tЭто переменная. Инициализируйте её: " << inputString[i] << " ==";
                         cin >> variable;
                         curr += to_string(variable);
                     }
-                    else curr.push_back(inputString[i]);
+                    else {
+                        cout << "\tЭто цифра. Переносим в промежуточную строку.";
+                        curr.push_back(inputString[i]);
+                    }
                     break;
                 case 1:
                 case 2:
@@ -352,15 +384,18 @@ bool resultPN(string &inputString, Stack &output) {
                         cout << "\nОшибка ввода строки! Недостаточно операндов.\n";
                         return false;
                     }
+                    cout << "\tЭто оператор. Достаем операнд из стека: " << output.head->data;
                     result = stof(output.head->data);
                     output.popFront();
                     if (inputString[i] == '/' && stof(output.head->data) == 0){
                         cout << "\nДеление на ноль невозможно!\n";
                         return false;
                     }
+                    cout << " Достаем операнд из стека: " << output.head->data;
                     result = operation(result, stof(output.head->data), inputString[i]);
                     output.popFront();
                     curr = to_string(result);
+                    cout << "\tРезультат: " << curr << " Помещаем его в стек.";
                     output.pushFront(curr, -1);
                     curr = "";
                     break;
